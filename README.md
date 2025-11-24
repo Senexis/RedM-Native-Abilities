@@ -1,7 +1,7 @@
 # Native Abilities
 
 > [!IMPORTANT]
-> This documentation, much like the resource, is currently in an alpha state and is not final. The data types, events, and triggers described in this documentation may change in future versions as the project evolves.
+> This documentation, much like the resource, is currently in a beta state and is not final. The data types, events, and triggers described in this documentation may change in future versions as the project evolves.
 
 ## Overview
 
