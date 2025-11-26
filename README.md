@@ -15,7 +15,7 @@ Unlike traditional web-based or custom UI implementations, Native Abilities leve
 
 You can click below to watch a short demonstration of Native Satchel.
 
-[![A preview of the showcase video showing an open Abilities menu](http://img.youtube.com/vi/UG-6G9LbVAY/0.jpg)](http://www.youtube.com/watch?v=UG-6G9LbVAY Showcase - RedM Native Abilities")
+[![A preview of the showcase video showing an open Satchel menu](http://img.youtube.com/vi/UG-6G9LbVAY/0.jpg)](http://www.youtube.com/watch?v=UG-6G9LbVAY "Showcase - RedM Native Satchel")
 
 ## Feature Requests
 
