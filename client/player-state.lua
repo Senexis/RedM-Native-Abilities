@@ -127,6 +127,12 @@ function PlayerState.addCardToInventory(cardId, tier, xp)
     tier = tier or 1
     xp = xp or 0
 
+    -- Validate that player has sufficient rank to own this card
+    if not PlayerState.validateCardUnlocked(cardId) then
+        print("Cannot add locked card: " .. cardId .. " (requires higher rank)")
+        return false
+    end
+
     -- Check if card already exists
     for _, item in ipairs(state.inventory) do
         if item.id == cardId then
@@ -170,6 +176,20 @@ function PlayerState.addCardXP(cardId, xpAmount)
     return false
 end
 
+function PlayerState.removeCardFromInventory(cardId)
+    for i, item in ipairs(state.inventory) do
+        if item.id == cardId then
+            local removedItem = table.remove(state.inventory, i)
+            triggerCallbacks("inventory", "remove", removedItem)
+            print("Removed card from inventory: " .. cardId)
+            return true
+        end
+    end
+
+    print("Card not found in inventory: " .. cardId)
+    return false
+end
+
 -- Ephemeral state setters
 function PlayerState.setSelectedSlot(slotId, slotIndex)
     ephemeralState.selectedSlotId = slotId
@@ -195,6 +215,61 @@ function PlayerState.setCategoryFilter(filterIndex)
     ephemeralState.currentCategoryFilter = filterIndex
 end
 
+-- Bulk state setters for synchronization
+function PlayerState.setLoadout(newLoadout)
+    if type(newLoadout) ~= "table" then
+        print("Invalid loadout data")
+        return false
+    end
+
+    local oldLoadout = {}
+    for k, v in pairs(state.loadout) do
+        oldLoadout[k] = v
+    end
+
+    state.loadout = {}
+    for k, v in pairs(newLoadout) do
+        state.loadout[k] = v
+    end
+
+    triggerCallbacks("loadout", state.loadout, oldLoadout)
+    print("Synchronized loadout")
+    return true
+end
+
+function PlayerState.setInventory(newInventory)
+    if type(newInventory) ~= "table" then
+        print("Invalid inventory data")
+        return false
+    end
+
+    local oldInventory = state.inventory
+    state.inventory = {}
+    local skippedCount = 0
+
+    for _, item in ipairs(newInventory) do
+        if type(item) == "table" and item.id then
+            -- Validate that player has sufficient rank to own this card
+            if PlayerState.validateCardUnlocked(item.id) then
+                table.insert(state.inventory, {
+                    id = item.id,
+                    tier = item.tier or 1,
+                    xp = item.xp or 0,
+                    owned = item.owned
+                })
+            else
+                skippedCount = skippedCount + 1
+                print("Skipped locked card: " .. item.id .. " (requires higher rank)")
+            end
+        end
+    end
+
+    triggerCallbacks("inventory", state.inventory, oldInventory)
+    print("Synchronized inventory with " .. #state.inventory .. " items" ..
+          (skippedCount > 0 and " (skipped " .. skippedCount .. " locked cards)" or ""))
+    return true
+end
+
 -- Validation helpers
 function PlayerState.validateSlotUnlocked(slotId, slots)
     for _, slot in ipairs(slots) do
@@ -203,6 +278,21 @@ function PlayerState.validateSlotUnlocked(slotId, slots)
         end
     end
     return false
+end
+
+function PlayerState.validateCardUnlocked(cardId)
+    -- Get card configuration from Config (which should be available globally)
+    if not _G.Config or not _G.Config.cards then
+        return true -- If no config available, allow all cards (fallback)
+    end
+
+    for _, card in ipairs(_G.Config.cards) do
+        if card.id == cardId then
+            return state.rank >= card.rank
+        end
+    end
+
+    return false -- Card not found in config, assume locked
 end
 
 function PlayerState.validateCardOwnership(cardId)

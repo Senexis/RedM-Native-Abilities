@@ -160,6 +160,9 @@ function EventHandlers.handleCardEquip(datastore)
                     PlayerState.clearSelectedSlot()
                     CardRenderer.updateLoadoutCards()
                     CardRenderer.updateBrowseCollection()
+
+                    -- Trigger event for server/developer integration
+                    TriggerEvent(Config.eventHandlerKey .. ":card_equipped", cardToEquip.id, selectedSlotId)
                 end
 
                 -- Indicates UI transition should proceed
@@ -195,6 +198,9 @@ function EventHandlers.handleCardBuy(datastore)
             local success = PlayerState.addCardToInventory(cardToBuy.id, 1, 0)
             if success then
                 CardRenderer.refreshUI()
+
+                -- Trigger event for server/developer integration
+                TriggerEvent(Config.eventHandlerKey .. ":card_purchased", cardToBuy.id)
             end
         else
             print("Player already owns card: " .. cardToBuy.id)
@@ -259,6 +265,9 @@ function EventHandlers.handleCardUpgrade(datastore)
 
                         -- Update focus data to reflect the changes for the current tier
                         CardRenderer.updateFocusData("ability_card_upgrade_focus_data", upgradeCardData, newInventoryItem, upgradeCardData.rank, tierIndex)
+
+                        -- Trigger event for server/developer integration
+                        TriggerEvent(Config.eventHandlerKey .. ":card_upgraded", upgradeCardData.id, tierIndex)
                     end
                 else
                     print("Insufficient XP for upgrade. Required: " .. requiredXp .. ", Current: " .. upgradeInventoryItem.xp)

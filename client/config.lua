@@ -142,6 +142,9 @@ Config.slotRules = {
     defense = "passive"        -- Defense cards go in passive slots
 }
 
+-- Event handler key for server/developer integration (same as Satchel pattern)
+Config.eventHandlerKey = "native_abilities"
+
 -- Make Config globally available
 _G.Config = Config
 return Config

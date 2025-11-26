@@ -31,24 +31,270 @@ Native Abilities is licensed under the [GNU GPL v3](https://github.com/Senexis/R
 
 ## Types
 
-The Native Abilities system is built around three main data types that define how elements are structured and displayed in the abilities interface. Understanding these types is essential for implementing a custom abilities system.
+The Native Abilities system is built around several main data types that define how ability cards, loadouts, and player progression are structured. Understanding these types is essential for implementing a custom abilities system.
 
-> [!IMPORTANT]
-> Sorry, no cigar for now.
+### Ability Cards
+
+```lua
+local card = {
+    -- Required: Unique identifier for the ability card
+    id = "net_player_ability__paint_it_black",
+
+    -- Required: Category this card belongs to (deadeye, recovery, combat, defense)
+    category = "deadeye",
+
+    -- Required: Minimum rank required to purchase/unlock this card
+    rank = 2,
+
+    -- Optional: Custom label text (uses labelHash if not provided)
+    label = "Paint it Black",
+
+    -- Required: Hash for the card's display name from game text files
+    labelHash = "ABILITY_CARD_PAINT_IT_BLACK",
+
+    -- Required: Texture dictionary containing the card's icon
+    txd = "ability_cards_set_a",
+
+    -- Required: Texture name for the card's icon
+    texture = "ability_card_paint_it_black",
+
+    -- Required: Array of tier progression data
+    tiers = {
+        {
+            -- XP required to upgrade TO this tier (nil for final tier)
+            xp = 2500,
+
+            -- Cash cost to upgrade to this tier
+            cash = 10000,
+
+            -- Hash for tier description from game text files
+            descriptionHash = "ABILITY_CARD_PAINT_IT_BLACK_TIER_ONE_DESC"
+        },
+        -- ... additional tiers
+    }
+}
+```
+
+### Player Loadout
+
+```lua
+local loadout = {
+    -- Active slot (deadeye cards only)
+    active_slot = "net_player_ability__paint_it_black",
+
+    -- Passive slots (recovery, combat, defense cards)
+    passive_slot_1 = "net_player_ability__strange_medicine",
+    passive_slot_2 = "net_player_ability__eye_for_an_eye",
+    passive_slot_3 = "net_player_ability__cold_blooded"
+}
+```
+
+### Player Inventory Items
+
+```lua
+local inventoryItem = {
+    -- Required: Matches ability card ID
+    id = "net_player_ability__paint_it_black",
+
+    -- Required: Whether player owns this card
+    owned = true,
+
+    -- Required: Current tier (1-3)
+    tier = 2,
+
+    -- Required: Current XP progress toward next tier
+    xp = 5000
+}
+```
+
+### Slot Configuration
+
+```lua
+local slot = {
+    -- Required: Unique identifier for the slot
+    id = "active_slot",
+
+    -- Optional: Custom title (uses titleHash if not provided)
+    title = "Active Ability",
+
+    -- Required: Hash for slot title from game text files
+    titleHash = "NET_PLAYER_ABILITY_ACTIVE_SLOT_TITLE",
+
+    -- Required: Minimum rank to unlock this slot
+    rank = 0
+}
+```
 
 ## Triggers
 
-Triggers are client-side events that allow you to control the abilities's behavior and manage the UI programmatically. These events provide the core functionality for opening/closing the abilities, synchronizing data, and performing various operations.
+Triggers are client-side events that allow you to control the abilities system behavior and manage data programmatically. These events provide the core functionality for opening/closing the UI, synchronizing player data, and performing card management operations.
 
-> [!IMPORTANT]
-> Sorry, no cigar for now.
+### UI Control
+
+```lua
+-- Open the abilities UI
+TriggerEvent("native_abilities:open_abilities")
+
+-- Close the abilities UI
+TriggerEvent("native_abilities:close_abilities")
+```
+
+### Data Synchronization
+
+```lua
+-- Synchronize player's current loadout
+local loadout = {
+    active_slot = "net_player_ability__paint_it_black",
+    passive_slot_1 = "net_player_ability__strange_medicine",
+    passive_slot_2 = nil, -- Empty slot
+    passive_slot_3 = nil
+}
+TriggerEvent("native_abilities:synchronize_loadout", loadout)
+
+-- Synchronize player's card inventory
+local inventory = {
+    {
+        id = "net_player_ability__paint_it_black",
+        owned = true,
+        tier = 3,
+        xp = 15000
+    },
+    {
+        id = "net_player_ability__strange_medicine",
+        owned = true,
+        tier = 1,
+        xp = 800
+    }
+    -- ... additional cards
+}
+TriggerEvent("native_abilities:synchronize_inventory", inventory)
+```
+
+### Loadout Management
+
+```lua
+-- Programmatically equip a card to a specific slot
+TriggerEvent("native_abilities:equip_card", "net_player_ability__paint_it_black", "active_slot")
+
+-- Remove a card from a specific slot
+TriggerEvent("native_abilities:remove_card", "passive_slot_1")
+```
 
 ## Events
 
-Events are fired automatically by the Native Abilities system when specific actions occur. You can listen to these events to implement custom logic, such as saving changes, logging player actions, or triggering server-side operations when players interact with the abilities.
+Events are fired automatically by the Native Abilities system when specific actions occur. You can listen to these events to implement custom logic, such as saving changes, logging player actions, or triggering server-side operations when players interact with the abilities system.
 
-> [!IMPORTANT]
-> Sorry, no cigar for now.
+### UI Events
+
+```lua
+-- Fired when the abilities UI is opened
+AddEventHandler("native_abilities:abilities_opened", function()
+    print("Player opened abilities menu")
+    -- Log UI access, check permissions, etc.
+end)
+
+-- Fired when the abilities UI is closed
+AddEventHandler("native_abilities:abilities_closed", function()
+    print("Player closed abilities menu")
+    -- Save any pending changes, update server state, etc.
+end)
+```
+
+### Card Management Events
+
+```lua
+-- Fired when a player equips an ability card
+AddEventHandler("native_abilities:card_equipped", function(cardId, slotId)
+    print("Player equipped " .. cardId .. " to " .. slotId)
+    -- Update server database, apply card effects, etc.
+end)
+
+-- Fired when a player removes an ability card
+AddEventHandler("native_abilities:card_removed", function(cardId, slotId)
+    print("Player removed " .. cardId .. " from " .. slotId)
+    -- Update server database, remove card effects, etc.
+end)
+
+-- Fired when a player purchases an ability card
+AddEventHandler("native_abilities:card_purchased", function(cardId)
+    print("Player purchased " .. cardId)
+    -- Deduct currency, update inventory, etc.
+end)
+
+-- Fired when a player upgrades an ability card
+AddEventHandler("native_abilities:card_upgraded", function(cardId, newTier)
+    print("Player upgraded " .. cardId .. " to tier " .. newTier)
+    -- Deduct XP/currency, update card tier, etc.
+end)
+```
+
+### Example Integration
+
+```lua
+-- Server-side example: Save loadout changes to database
+AddEventHandler("native_abilities:card_equipped", function(cardId, slotId)
+    local playerId = source
+
+    -- Update player's loadout in database
+    MySQL.update("UPDATE player_loadouts SET ? = ? WHERE player_id = ?", {
+        slotId, cardId, playerId
+    })
+
+    -- Apply card effects to player
+    ApplyAbilityCardEffects(playerId, cardId)
+end)
+
+-- Server-side example: Handle card purchases
+AddEventHandler("native_abilities:card_purchased", function(cardId)
+    local playerId = source
+
+    -- Find card configuration
+    local cardData = GetCardConfig(cardId)
+    if not cardData then return end
+
+    -- Check if player has enough money
+    local playerMoney = GetPlayerMoney(playerId)
+    local cardCost = cardData.tiers[1].cash
+
+    if playerMoney >= cardCost then
+        -- Deduct money and add card to inventory
+        RemovePlayerMoney(playerId, cardCost)
+        AddCardToInventory(playerId, cardId, 1, 0) -- tier 1, 0 XP
+
+        -- Sync updated inventory back to client
+        local inventory = GetPlayerCardInventory(playerId)
+        TriggerClientEvent("native_abilities:synchronize_inventory", playerId, inventory)
+    else
+        -- Not enough money - you could show an error message
+        TriggerClientEvent("chat:addMessage", playerId, {
+            color = { 255, 0, 0 },
+            multiline = true,
+            args = { "System", "Insufficient funds to purchase ability card!" }
+        })
+    end
+end)
+```
+
+## Architecture
+
+Native Abilities is built using a clean modular architecture that promotes maintainability and extensibility. The system is organized into focused modules with clear responsibilities:
+
+### Core Modules
+
+- **`abilities.lua`** - Main entry point, UI event processing, and external integration
+- **`config.lua`** - Ability card data, categories, and system configuration
+- **`player-state.lua`** - Player progression, loadout, and inventory management
+- **`utils.lua`** - Utility functions and helper methods
+- **`card-logic.lua`** - Business logic for card operations and validations
+- **`ui-databinding.lua`** - UI data binding and state synchronization
+- **`card-renderer.lua`** - UI rendering and visual updates
+- **`event-handlers.lua`** - User interaction processing and event handling
+
+### Supporting Modules
+
+- **`dataview.lua`** - Low-level memory operations and data structures
+
+The architecture uses dependency injection to manage module relationships, ensuring clean separation of concerns while maintaining high cohesion within each module. This design enables easy testing, maintenance, and future enhancements while providing a comprehensive event system for server integration.
 
 ## Attribution
 

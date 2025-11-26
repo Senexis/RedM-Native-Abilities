@@ -145,13 +145,213 @@ CreateThread(function()
     end
 end)
 
+-- Open abilities UI
+local function openAbilities()
+    -- Launch the abilities UI
+    LaunchUiappByHashWithEntry(uiAppChannel, '')
+
+    -- Trigger event for server/developer integration
+    TriggerEvent(Config.eventHandlerKey .. ":abilities_opened")
+
+    -- Monitor UI state
+    Citizen.CreateThread(function()
+        while IsUiappRunningByHash(uiAppChannel) == 1 do
+            Citizen.Wait(0)
+        end
+
+        -- Trigger event when UI closes
+        TriggerEvent(Config.eventHandlerKey .. ":abilities_closed")
+    end)
+end
+
+-- Close abilities UI
+local function closeAbilities()
+    if IsUiappRunningByHash(uiAppChannel) then
+        CloseUiappByHashImmediate(uiAppChannel)
+    end
+end
+
 -- Resource cleanup
+AddEventHandler("onResourceStart", function(resourceName)
+    if GetCurrentResourceName() ~= resourceName then
+        return
+    end
+
+    initialize()
+end)
+
 AddEventHandler("onResourceStop", function(resourceName)
     if GetCurrentResourceName() ~= resourceName then
         return
     end
 
-    if IsUiappActiveByHash(uiAppChannel) then
-        CloseUiappByHashImmediate(uiAppChannel)
+    closeAbilities()
+end)
+
+-- Abilities Control Triggers (External Integration)
+AddEventHandler(Config.eventHandlerKey .. ":open_abilities", function()
+    openAbilities()
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":close_abilities", function()
+    closeAbilities()
+end)
+
+-- Loadout Management Triggers
+AddEventHandler(Config.eventHandlerKey .. ":synchronize_loadout", function(loadout)
+    if type(loadout) ~= "table" then
+        print("[Native Abilities] Can't synchronize without a valid table of loadout items")
+        return
+    end
+
+    PlayerState.setLoadout(loadout)
+    CardRenderer.updateLoadoutCards()
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":synchronize_inventory", function(inventory)
+    if type(inventory) ~= "table" then
+        print("[Native Abilities] Can't synchronize without a valid table of inventory items")
+        return
+    end
+
+    PlayerState.setInventory(inventory)
+    CardRenderer.refreshUI()
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":equip_card", function(cardId, slotId)
+    if type(cardId) ~= "string" or type(slotId) ~= "string" then
+        print("[Native Abilities] Can't equip card without valid card ID and slot ID")
+        return
+    end
+
+    -- Find the card configuration
+    local cardConfig = nil
+    for _, card in ipairs(Config.cards) do
+        if card.id == cardId then
+            cardConfig = card
+            break
+        end
+    end
+
+    if not cardConfig then
+        print("[Native Abilities] Card '" .. cardId .. "' not found in configuration")
+        return
+    end
+
+    -- Check slot compatibility
+    local slotIndex = nil
+    for i, slot in ipairs(Config.slots) do
+        if slot.id == slotId then
+            slotIndex = i - 1
+            break
+        end
+    end
+
+    if not slotIndex then
+        print("[Native Abilities] Slot '" .. slotId .. "' not found in configuration")
+        return
+    end
+
+    -- Update loadout
+    local currentLoadout = PlayerState.getLoadout()
+    currentLoadout[slotId] = cardId
+
+    PlayerState.setLoadout(currentLoadout)
+    CardRenderer.updateLoadoutCards()
+
+    -- Trigger event for server notification
+    TriggerEvent(Config.eventHandlerKey .. ":card_equipped", cardId, slotId)
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":remove_card", function(slotId)
+    if type(slotId) ~= "string" then
+        print("[Native Abilities] Can't remove card without valid slot ID")
+        return
+    end
+
+    -- Find slot index
+    local slotIndex = nil
+    for i, slot in ipairs(Config.slots) do
+        if slot.id == slotId then
+            slotIndex = i - 1
+            break
+        end
+    end
+
+    if not slotIndex then
+        print("[Native Abilities] Slot '" .. slotId .. "' not found in configuration")
+        return
+    end
+
+    -- Remove from loadout
+    local currentLoadout = PlayerState.getLoadout()
+    local removedCard = currentLoadout[slotId]
+    currentLoadout[slotId] = nil
+
+    PlayerState.setLoadout(currentLoadout)
+    CardRenderer.updateLoadoutCards()
+
+    -- Trigger event for server notification
+    if removedCard then
+        TriggerEvent(Config.eventHandlerKey .. ":card_removed", removedCard, slotId)
+    end
+end)
+
+-- Inventory Management Triggers
+AddEventHandler(Config.eventHandlerKey .. ":add_card_to_inventory", function(cardId, tier, xp)
+    if type(cardId) ~= "string" then
+        print("[Native Abilities] Can't add card without valid card ID")
+        return
+    end
+
+    tier = tier or 1
+    xp = xp or 0
+
+    if PlayerState.addCardToInventory(cardId, tier, xp) then
+        CardRenderer.refreshUI()
+        TriggerEvent(Config.eventHandlerKey .. ":card_added_to_inventory", cardId, tier, xp)
+    end
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":remove_card_from_inventory", function(cardId)
+    if type(cardId) ~= "string" then
+        print("[Native Abilities] Can't remove card without valid card ID")
+        return
+    end
+
+    if PlayerState.removeCardFromInventory(cardId) then
+        CardRenderer.refreshUI()
+        TriggerEvent(Config.eventHandlerKey .. ":card_removed_from_inventory", cardId)
+    end
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":add_card_xp", function(cardId, xpAmount)
+    if type(cardId) ~= "string" then
+        print("[Native Abilities] Can't add XP without valid card ID")
+        return
+    end
+
+    xpAmount = tonumber(xpAmount) or 0
+    if xpAmount <= 0 then
+        print("[Native Abilities] XP amount must be positive")
+        return
+    end
+
+    if PlayerState.addCardXP(cardId, xpAmount) then
+        CardRenderer.refreshUI()
+        TriggerEvent(Config.eventHandlerKey .. ":card_xp_added", cardId, xpAmount)
+    end
+end)
+
+AddEventHandler(Config.eventHandlerKey .. ":set_rank", function(newRank)
+    newRank = tonumber(newRank)
+    if not newRank or newRank < 0 then
+        print("[Native Abilities] Invalid rank: must be a positive number")
+        return
+    end
+
+    if PlayerState.setRank(newRank) then
+        CardRenderer.refreshUI()
+        TriggerEvent(Config.eventHandlerKey .. ":rank_updated", newRank)
     end
 end)

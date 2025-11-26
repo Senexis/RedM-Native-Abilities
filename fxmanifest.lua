@@ -18,5 +18,8 @@ client_scripts {
     'client/card-renderer.lua',
     'client/event-handlers.lua',
     'client/dataview.lua',
-    'client/abilities.lua'
+    'client/abilities.lua',
+
+    -- Remove the line below to disable debug commands and event logging
+    'client/debug.lua'
 }
