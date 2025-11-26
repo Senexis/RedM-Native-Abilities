@@ -1,7 +1,7 @@
 # Native Abilities
 
 > [!IMPORTANT]
-> This documentation, much like the resource, is currently in a beta state and is not final. The data types, events, and triggers described in this documentation may change in future versions as the project evolves.
+> This resource is barebones and is intended to be used with an existing implementation of an abilities system or as the base of one.
 
 ## Overview
 
