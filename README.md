@@ -11,6 +11,12 @@ Unlike traditional web-based or custom UI implementations, Native Abilities leve
 
 📖 **[Jump to Documentation](#types)**
 
+## Showcase
+
+You can click below to watch a short demonstration of Native Satchel.
+
+[![A preview of the showcase video showing an open Abilities menu](http://img.youtube.com/vi/UG-6G9LbVAY/0.jpg)](http://www.youtube.com/watch?v=UG-6G9LbVAY Showcase - RedM Native Abilities")
+
 ## Feature Requests
 
 If you're missing functionality or have ideas for new features that would improve Native Abilities, please don't hesitate to [open an issue](https://github.com/Senexis/RedM-Native-Abilities/issues). Feature requests from the community are always welcome, and feedback about use cases and requirements helps shape the direction of this project!
